@@ -1,0 +1,164 @@
+tasks: $tasks
+init:
+  drlmctlTarget:
+    URL: ssh://${drlmctl-ip}
+    credentials: drlm
+  drlmCoreTarget:
+    URL: scp://${drlm-core-ip}/home/drlm
+    credentials: drlm-user
+defaults:
+  target: $drlmctlTarget
+pipeline:
+  drlmctl-build:
+    set-sdk:
+      action: sdk:set
+      sdk: ${sdk}
+    build:
+      action: exec:run
+      directory: /src/drlmctl
+      commands:
+        - make build
+        - mkdir -p /tmp/build/${app}
+        - mv drlmctl /tmp/build/${app}
+
+  drlmctl-generate-cfg:
+    action: exec:run
+    commands:
+      - echo '[core]
+
+            cert_path = "/tls/core/core.crt"' >> /tmp/build/${app}/drlmctl.toml
+
+  drlmctl-generate-ssh:
+    action: exec:run
+    commands:
+      - echo -e "\n" | ssh-keygen -t rsa -N ""
+
+  drlm-core-add:
+    action: exec:run
+    directory: /tmp/build/${app}
+    commands:
+      - ./drlmctl core add --host=${drlm-core-ip} --user=root --password=${pass}
+
+  drlm-core-install:
+    action: exec:run
+    directory: /tmp/build/${app}
+    commands:
+      - ./drlmctl core install
+      - sleep 2
+
+  drlm-core-add-target:
+    action: exec:run
+    target:
+      URL: scp://${drlm-core-ip}/home/drlm
+      credentials: drlm
+    commands:
+      - su - drlm
+      - echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3KJYETySlFQDJusenT1/ODFhQVxescQ6IL5b9qYirM nefix@farbala.lan" >> /home/drlm/.ssh/authorized_keys
+
+  drlm-core-generate-cfg:
+    action: exec:run
+    target: $drlmCoreTarget
+    commands:
+      - echo '[security]
+
+          tokens_secret = "secretsecretsecretsecretsecretsecret"
+
+        [grpc]
+
+          cert_path = "/tls/core/core.crt"
+
+          key_path = "/tls/core/core.key"
+
+        [db]
+
+          host = "${db-ip}"
+
+          username = "root"
+
+          password = "${pass}"
+
+        [minio]
+
+          host = "${minio-ip}"
+
+          cert_path = "/tls/minio/public.crt"
+
+        [log]
+
+          file = "./drlm-core.log"' >> core.toml
+
+  drlm-core-create-db:
+    action: exec:extract
+    target: $drlmCoreTarget
+    directory: /home/drlm
+    comment: This will fail since the admin user hasn't been created yet
+    commands:
+      - command: ./.bin/drlm-core
+        terminators:
+          - Please, set the admin password
+        timeoutMs: 10000
+      - command: ${pass-core}
+        terminators:
+          - Please, repeat admin password
+        timeoutMs: 10000
+      - command: ${pass-core}
+        terminators:
+          - DRLM Core listenning at port
+
+  drlm-core-start:
+    action: process:start
+    target: $drlmCoreTarget
+    directory: /home/drlm
+    command: ./.bin/drlm-core
+    immuneToHangups: true
+
+  user:
+    add:
+      action: exec:extract
+      target: $drlmctlTarget
+      commands:
+        - echo ${docker-name}
+        - command: ./drlmctl user add -u nefix -p ${pass-core}
+          terminators:
+            - Enter username
+          timeoutMs: 10000
+        - command: admin
+          terminators:
+            - Enter password
+          timeoutMs: 10000
+        - command: ${pass-core}
+
+    list:
+      cmd:
+        action: exec:run
+        commands:
+          - ./drlmctl user list
+
+      assert-admin:
+        action: validator:assert
+        target: $drlmctlTarget
+        actual: $cmd.Output
+        expect: /admin/
+
+      assert-nefix:
+        action: validator:assert
+        target: $drlmctlTarget
+        actual: $cmd.Output
+        expect: /nefix/
+
+    delete:
+      cmd:
+        action: exec:run
+        commands:
+          - ./drlmctl user delete -u nefix
+
+      assert-cmd:
+        action: exec:run
+        commands:
+          - ./drlmctl user list
+
+      assert:
+        action: validator:assert
+        target: $drlmctlTarget
+        actual: $assert-cmd.Output
+        expect: "!/nefix/"

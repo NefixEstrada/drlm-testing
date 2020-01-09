@@ -1,0 +1,21 @@
+pipeline:
+  create-db:
+    drlm3:
+      action: dsunit:init
+      datastore: drlm3
+      recrete: true
+      config:
+        driverName: mysql
+        descriptor: "[username]:[password]@tcp(${db-ip}:3306)/[dbname]?parseTime=true"
+        credentials: db
+      admin:
+        datastore: mysql
+        config:
+          driverName: mysql
+          descriptor: "[username]:[password]@tcp(${db-ip}:3306)/[dbname]?parseTime=true"
+          credentials: db
+      # scripts:
+      #   - URL: datastore/drlm3/init.sql
+
+  # prepare:
+
