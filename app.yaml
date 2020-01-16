@@ -1,10 +1,10 @@
 tasks: $tasks
 init:
   drlmctlTarget:
-    URL: ssh://${drlmctl-ip}
+    URL: ssh://${docker-name}-drlmctl
     credentials: drlm
   drlmCoreTarget:
-    URL: scp://${drlm-core-ip}/home/drlm
+    URL: scp://${docker-name}-drlm-core/home/drlm
     credentials: drlm-user
 defaults:
   target: $drlmctlTarget
@@ -37,7 +37,7 @@ pipeline:
     action: exec:run
     directory: /tmp/build/${app}
     commands:
-      - ./drlmctl core add --host=${drlm-core-ip} --user=root --password=${pass}
+      - ./drlmctl core add --host=${docker-name}-drlm-core --user=root --password=${pass}
 
   drlm-core-install:
     action: exec:run
@@ -49,11 +49,11 @@ pipeline:
   drlm-core-add-target:
     action: exec:run
     target:
-      URL: scp://${drlm-core-ip}/home/drlm
+      URL: scp://${docker-name}-drlm-core/home/drlm
       credentials: drlm
     commands:
       - su - drlm
-      - echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH3KJYETySlFQDJusenT1/ODFhQVxescQ6IL5b9qYirM nefix@farbala.lan" >> /home/drlm/.ssh/authorized_keys
+      - echo "${env.SSH_PUBKEY}" >> /home/drlm/.ssh/authorized_keys
 
   drlm-core-generate-cfg:
     action: exec:run
@@ -71,7 +71,7 @@ pipeline:
 
         [db]
 
-          host = "${db-ip}"
+          host = "${docker-name}-db"
 
           username = "root"
 
@@ -79,7 +79,7 @@ pipeline:
 
         [minio]
 
-          host = "${minio-ip}"
+          host = "${docker-name}-minio"
 
           cert_path = "/tls/minio/public.crt"
 

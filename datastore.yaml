@@ -6,13 +6,13 @@ pipeline:
       recrete: true
       config:
         driverName: mysql
-        descriptor: "[username]:[password]@tcp(${db-ip}:3306)/[dbname]?parseTime=true"
+        descriptor: "[username]:[password]@tcp(${docker-name}-db:3306)/[dbname]?parseTime=true"
         credentials: db
       admin:
         datastore: mysql
         config:
           driverName: mysql
-          descriptor: "[username]:[password]@tcp(${db-ip}:3306)/[dbname]?parseTime=true"
+          descriptor: "[username]:[password]@tcp(${docker-name}-db:3306)/[dbname]?parseTime=true"
           credentials: db
       # scripts:
       #   - URL: datastore/drlm3/init.sql

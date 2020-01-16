@@ -1,27 +1,22 @@
 # drlm-testing
 
-This is the repository for testing DRLM. It uses [Endly](https://github.com/viant/endly) for E2E
+This is the repository for testing DRLMv3. It uses [Endly](https://github.com/viant/endly) for E2E
 
 
 ## How to use
 
-1- Install the latest version of [Endly](https://github.com/viant/endly) (Go 1.11+ required):
+### 1- Install the latest version of [dr3dev](https://github.com/didacog/dr3dev) (the DRLM development environment):
 
 ```sh
-git clone https://github.com/viant/endly
-cd endly/endly
-GO111MODULE=on go build endly.go
-mv endly /usr/local/bin
+git clone https://github.com/didacog/dr3dev && cd dr3dev
+make build-all
+make start-all 
 ```
 
-2- Clone this repository
+### 2- Start the environment and run the tests!
 
 ```sh
-git clone https://github.com/NefixEstrada/drlm-testing
+make start-all tls=true ghuser="<GitHub username>" gitname="<Git name>" gitmail="<Git email address>"
 cd drlm-testing
-```
-
-3- Run the tests!!
-```sh
-endly
+./run.sh
 ```

@@ -1,0 +1,122 @@
+version: '3.7'
+services:
+  tls:
+    image: ${DOCKER_NAME}-tls:latest
+    container_name: ${DOCKER_NAME}-tls
+    networks:
+      - dr3dev
+    hostname: ${DOCKER_NAME}-tls
+    domainname: dr3dev.local
+    volumes:
+      - type: bind
+        source: ${SRC}/drlm-testing/docker/entrypoint_sshd.sh
+        target: /etc/entrypoint.d/0_entrypoint_sshd.sh
+        read_only: true
+      - type: bind
+        source: ${SRC}/drlm-testing/docker/tls/entrypoint.sh
+        target: /etc/entrypoint.d/1_entrypoint.sh
+        read_only: true
+      - type: bind
+        source: ${SRC}/drlm-testing/tmp/tls
+        target: /tls
+        read_only: false
+    environment:
+      PASS: ${PASS}
+      SSH_ENABLE_PASSWORD_AUTH: "true"
+
+  db:
+    image: mysql:5.7
+    container_name: ${DOCKER_NAME}-db
+    networks:
+      - dr3dev
+    hostname: ${DOCKER_NAME}-db
+    domainname: dr3dev.local
+    environment:
+      MYSQL_ROOT_PASSWORD: ${PASS}
+
+  minio:
+    image: minio/minio
+    container_name: ${DOCKER_NAME}-mino
+    command: server --address :9443 /data
+    networks:
+      - dr3dev
+    hostname: ${DOCKER_NAME}-minio
+    domainname: dr3dev.local
+    volumes:
+      - type: bind
+        source: ${SRC}/drlm-testing/tmp/tls
+        target: /tls
+        read_only: true
+    environment:
+      MINIO_ACCESS_KEY: ${PASS-minio}
+      MINIO_SECRET_KEY: ${PASS-minio}
+
+  drlmctl:
+    image: ${DOCKER_NAME}-drlmctl:latest
+    container_name: ${DOCKER_NAME}-drlmctl
+    networks:
+      - dr3dev
+    hostname: ${DOCKER_NAME}-drlmctl
+    domainname: dr3dev.local
+    volumes:
+      - type: bind
+        source: ${SRC}/drlm-testing/docker/entrypoint_sshd.sh
+        target: /etc/entrypoint.d/entrypoint_sshd.sh
+        read_only: true
+      - type: bind
+        source: ${SRC}
+        target: /src
+        read_only: false
+      - type: bind
+        source: ${SRC}/drlm-testing/tmp/tls
+        target: /tls
+        read_only: true
+    environment:
+      PASS: ${PASS}
+      SSH_ENABLE_PASSWORD_AUTH: "true"
+
+  drlm-core:
+    image: panubo/sshd
+    container_name: ${DOCKER_NAME}-drlm-core
+    networks:
+      - dr3dev
+    hostname: ${DOCKER_NAME}-drlm-core
+    domainname: dr3dev.local
+    volumes:
+      - type: bind
+        source: ${SRC}/drlm-testing/docker/entrypoint_sshd.sh
+        target: /etc/entrypoint.d/entrypoint_sshd.sh
+        read_only: true
+      - type: bind
+        source: ${SRC}/drlm-testing/tmp/tls
+        target: /tls
+        read_only: true
+    networks:
+      - dr3dev
+    environment:
+      PASS: ${PASS}
+      SSH_ENABLE_PASSWORD_AUTH: "true"
+
+  drlm-agent:
+    image: panubo/sshd
+    container_name: ${DOCKER_NAME}-drlm-agent
+    networks:
+      - dr3dev
+    hostname: ${DOCKER_NAME}-drlm-agent
+    domainname: dr3dev.local
+    volumes:
+      - type: bind
+        source: ${SRC}/drlm-testing/docker/entrypoint_sshd.sh
+        target: /etc/entrypoint.d/entrypoint_sshd.sh
+        read_only: true
+      - type: bind
+        source: ${SRC}/drlm-testing/tmp/tls
+        target: /tls
+        read_only: true
+    environment:
+      PASS: ${PASS}
+      SSH_ENABLE_PASSWORD_AUTH: "true"
+
+networks:
+  dr3dev:
+    external: true

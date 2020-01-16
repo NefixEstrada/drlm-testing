@@ -1,78 +1,109 @@
 tasks: $tasks
-# defaults:
-  # target: $serviceTarget
+init:
+  compose-file: docker/docker-compose.yml
+  godev-target:
+    URL: ssh://godev
+    credentials: godev
 pipeline:
   destroy:
-    stop-images:
-      action: docker:stop
-      names:
-        - ${docker-name}-drlm-core
-        - ${docker-name}-drlmctl
-        - ${docker-name}-minio
-        - ${docker-name}-mariadb
+    compose-down:
+      action: docker/ssh:composeDown
+      target: ${godev-target}
+      source:
+        URL: ${compose-file}
+
+    # stop-images:
+    #   action: docker:stop
+    #   names:
+    #     - ${docker-name}-drlm-core
+    #     - ${docker-name}-drlmctl
+    #     - ${docker-name}-minio
+    #     - ${docker-name}-mariadb
 
   init:
-    services:
-      mysql:
-        action: docker:run
-        image: mysql:5.7
-        name: ${docker-name}-db
-        env:
-          MYSQL_ROOT_PASSWORD: ${pass}
-
-      minio:
-        action: docker:run
-        image: minio/minio
-        name: ${docker-name}-minio
-        mount:
-          tmp/tls: /tls
-        cmd:
-          - server
-          - --address
-          - :9443
-          - /data
-        env:
-          MINIO_ACCESS_KEY: ${pass-minio}
-          MINIO_SECRET_KEY: ${pass-minio}
-
+    build-images:
       drlmctl:
-        build:
-          action: docker:build
-          path: docker/drlmctl
-          tag:
-            image: ${docker-name}-drlmctl
-            version: latest
+        action: docker:build
+        path: docker/drlmctl
+        tag:
+          image: ${docker-name}-drlmctl
+          version: latest
+          
+      tls:
+        action: docker:build
+        path: docker/tls
+        tag:
+          image: ${docker-name}-tls
+          version: latest
 
-        start:
-          action: docker:run
-          image: ${docker-name}-drlmctl:latest
-          name: ${docker-name}-drlmctl
-          mount:
-            docker/entrypoint_sshd.sh: /etc/entrypoint.d/entrypoint_sshd.sh
-            ../dr3dev/files/golang/gopath/src/github.com/brainupdaters: /src
-            tmp/tls: /tls
-          env:
-            PASS: ${pass}
-            SSH_ENABLE_PASSWORD_AUTH: true
 
-      drlm-core:
-        action: docker:run
-        image: panubo/sshd
-        name: ${docker-name}-drlm-core
-        mount:
-          docker/entrypoint_sshd.sh: /etc/entrypoint.d/entrypoint_sshd.sh
-          tmp/tls: /tls
-        env:
-          PASS: ${pass}
-          SSH_ENABLE_PASSWORD_AUTH: true
+    compose-up:
+      action: docker/ssh:composeUp
+      target: ${godev-target}
+      source:
+        URL: ${compose-file}
+      runInBackground: true
+    # services:
+    #   mysql:
+    #     action: docker:run
+    #     image: mysql:5.7
+    #     name: ${docker-name}-db
+    #     env:
+    #       MYSQL_ROOT_PASSWORD: ${pass}
 
-      drlm-agent:
-        action: docker:run
-        image: panubo/sshd
-        name: ${docker-name}-drlm-agent
-        mount:
-          docker/entrypoint_sshd.sh: /etc/entrypoint.d/entrypoint_sshd.sh
-          tmp/tls: /tls
-        env:
-          PASS: ${pass}
-          SSH_ENABLE_PASSWORD_AUTH: true
+    #   minio:
+    #     action: docker:run
+    #     image: minio/minio
+    #     name: ${docker-name}-minio
+    #     mount:
+    #       ${src}/drlm-testing/tmp/tls: /tls
+    #     cmd:
+    #       - server
+    #       - --address
+    #       - :9443
+    #       - /data
+    #     env:
+    #       MINIO_ACCESS_KEY: ${pass-minio}
+    #       MINIO_SECRET_KEY: ${pass-minio}
+
+    #   drlmctl:
+    #     build:
+    #       action: docker:build
+    #       path: docker/drlmctl
+    #       tag:
+    #         image: ${docker-name}-drlmctl
+    #         version: latest
+
+    #     start:
+    #       action: docker:run
+    #       image: ${docker-name}-drlmctl:latest
+    #       name: ${docker-name}-drlmctl
+    #       mount:
+    #         ${src}/drlm-testing/docker/entrypoint_sshd.sh: /etc/entrypoint.d/entrypoint_sshd.sh
+    #         ${src}: /src
+    #         ${src}/drlm-testing/tmp/tls: /tls
+    #       env:
+    #         PASS: ${pass}
+    #         SSH_ENABLE_PASSWORD_AUTH: true
+
+    #   drlm-core:
+    #     action: docker:run
+    #     image: panubo/sshd
+    #     name: ${docker-name}-drlm-core
+    #     mount:
+    #       ${src}/drlm-testing/docker/entrypoint_sshd.sh: /etc/entrypoint.d/entrypoint_sshd.sh
+    #       ${src}/drlm-testing/tmp/tls: /tls
+    #     env:
+    #       PASS: ${pass}
+    #       SSH_ENABLE_PASSWORD_AUTH: true
+
+    #   drlm-agent:
+    #     action: docker:run
+    #     image: panubo/sshd
+    #     name: ${docker-name}-drlm-agent
+    #     mount:
+    #       ${src}/drlm-testing/docker/entrypoint_sshd.sh: /etc/entrypoint.d/entrypoint_sshd.sh
+    #       ${src}/drlm-testing/tmp/tls: /tls
+    #     env:
+    #       PASS: ${pass}
+    #       SSH_ENABLE_PASSWORD_AUTH: true

@@ -1,10 +1,11 @@
 init:
   app: drlm
   sdk: go:1.13
-  pass: drlm
-  pass-minio: drlm3minio
-  pass-core: f0cKt3Rf$
-  docker-name: drlm-testing
+  pass: ${env.PASS}
+  pass-minio: ${env.PASS_MINO}
+  pass-core: ${env.PASS_CORE}
+  docker-name: ${env.DOCKER_NAME}
+  src: ${env.SRC}
 
 pipeline:
   init:
@@ -13,58 +14,7 @@ pipeline:
       request: "@system"
       tasks: "*"
 
-    db-ip:
-      action: docker:inspect
-      name: ${docker-name}-db
-      post:
-        - db-ip = $Info[0].NetworkSettings.IPAddress
-    minio-ip:
-      action: docker:inspect
-      name: ${docker-name}-minio
-      post:
-        - minio-ip = $Info[0].NetworkSettings.IPAddress
-    drlmctl-ip:
-      action: docker:inspect
-      name: ${docker-name}-drlmctl
-      post:
-        - drlmctl-ip = $Info[0].NetworkSettings.IPAddress
-    drlm-core-ip:
-      action: docker:inspect
-      name: ${docker-name}-drlm-core
-      post:
-        - drlm-core-ip = $Info[0].NetworkSettings.IPAddress
-    drlm-agent-ip:
-      action: docker:inspect
-      name: ${docker-name}-drlm-agent
-      post:
-        - drlm-agent-ip = $Info[0].NetworkSettings.IPAddress
-
     tls:
-      build:
-        action: docker:build
-        path: docker/tls
-        tag:
-          image: ${docker-name}-tls
-          version: latest
-
-      start:
-        action: docker:run
-        image: ${docker-name}-tls:latest
-        name: ${docker-name}-tls
-        mount:
-          docker/entrypoint_sshd.sh: /etc/entrypoint.d/0_entrypoint_sshd.sh
-          docker/tls/entrypoint.sh: /etc/entrypoint.d/1_entrypoint.sh
-          tmp/tls: /tls
-        env:
-          PASS: ${pass}
-          SSH_ENABLE_PASSWORD_AUTH: true
-
-      inspect:
-        action: docker:inspect
-        name: ${docker-name}-tls
-        post:
-          - tls-ip = $Info[0].NetworkSettings.IPAddress
-
       wait-for-sshd:
         action: nop
         sleepTimeMs: 20000
@@ -72,15 +22,15 @@ pipeline:
       generate-certs:
         action: exec:run
         target:
-          URL: ssh://${tls-ip}
+          URL: ssh://${docker-name}-tls
           credentials: drlm
         commands:
           - rm -rf /tls/*
           - /usr/local/bin/generate-certs.sh
         env:
-          ip_minio: ${minio-ip}
-          ip_db: ${db-ip}
-          ip_core: ${drlm-core-ip}
+          ip_minio: ${docker-name}-mino
+          ip_db: ${docker-name}-db
+          ip_core: ${docker-name}-drlm-core
 
       stop:
         action: docker:stop
