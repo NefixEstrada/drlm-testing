@@ -115,7 +115,6 @@ pipeline:
   user:
     add:
       action: exec:extract
-      target: $drlmctlTarget
       commands:
         - echo ${docker-name}
         - command: ./drlmctl user add -u nefix -p ${pass-core}
@@ -136,13 +135,11 @@ pipeline:
 
       assert-admin:
         action: validator:assert
-        target: $drlmctlTarget
         actual: $cmd.Output
         expect: /admin/
 
       assert-nefix:
         action: validator:assert
-        target: $drlmctlTarget
         actual: $cmd.Output
         expect: /nefix/
 
@@ -159,6 +156,30 @@ pipeline:
 
       assert:
         action: validator:assert
-        target: $drlmctlTarget
         actual: $assert-cmd.Output
         expect: "!/nefix/"
+
+  agent:
+    add:
+      acion: exec:run
+      directory: /tmp/build/${app}
+      commands:
+        - ./drlmctl agent add --host=${docker-name}-drlm-agent --user=root --password=${pass}
+    
+    install:
+      acion: exec:run
+      directory: /tmp/build/${app}
+      commands:
+        - ./drlmctl agent install --host=${docker-name}-drlm-agent
+
+    list:
+      cmd:
+        acion: exec:run
+        directory: /tmp/build/${app}
+        commands:
+          - ./drlmctl agent list
+      
+      assert:
+        action: validator:assert
+        actual: $cmd.Output
+        expect: /${docker-name}-drlm-agent/

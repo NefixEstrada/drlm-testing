@@ -2,7 +2,7 @@ init:
   app: drlm
   sdk: go:1.13
   pass: ${env.PASS}
-  pass-minio: ${env.PASS_MINO}
+  pass-minio: ${env.PASS_MINIO}
   pass-core: ${env.PASS_CORE}
   docker-name: ${env.DOCKER_NAME}
   src: ${env.SRC}
@@ -28,13 +28,25 @@ pipeline:
           - rm -rf /tls/*
           - /usr/local/bin/generate-certs.sh
         env:
-          ip_minio: ${docker-name}-mino
+          ip_minio: ${docker-name}-minio
           ip_db: ${docker-name}-db
           ip_core: ${docker-name}-drlm-core
 
       stop:
         action: docker:stop
         name: ${docker-name}-tls
+
+      restart-with-new-certs:
+        stop:
+          action: docker:stop
+          names:
+            - ${docker-name}-minio
+              # - ${docker-name}-db
+        start:
+          action: docker:start
+          names:
+            - ${docker-name}-minio
+              # - ${docker-name}-db
 
     datastore:
       action: run

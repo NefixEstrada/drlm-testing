@@ -36,8 +36,8 @@ services:
 
   minio:
     image: minio/minio
-    container_name: ${DOCKER_NAME}-mino
-    command: server --address :9443 /data
+    container_name: ${DOCKER_NAME}-minio
+    command: server --address :9443 --certs-dir /tls/minio /data
     networks:
       - dr3dev
     hostname: ${DOCKER_NAME}-minio
@@ -46,10 +46,10 @@ services:
       - type: bind
         source: ${SRC}/drlm-testing/tmp/tls
         target: /tls
-        read_only: true
+        read_only: false
     environment:
-      MINIO_ACCESS_KEY: ${PASS-minio}
-      MINIO_SECRET_KEY: ${PASS-minio}
+      MINIO_ACCESS_KEY: ${PASS_MINIO}
+      MINIO_SECRET_KEY: ${PASS_MINIO}
 
   drlmctl:
     image: ${DOCKER_NAME}-drlmctl:latest
