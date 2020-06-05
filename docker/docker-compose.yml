@@ -25,7 +25,7 @@ services:
       SSH_ENABLE_PASSWORD_AUTH: "true"
 
   db:
-    image: mysql:5.7
+    image: mariadb:10.3
     container_name: ${DOCKER_NAME}-db
     networks:
       - dr3dev
